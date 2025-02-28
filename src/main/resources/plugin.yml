@@ -1,0 +1,13 @@
+name: CommandLogger
+version: 1.0
+main: dev.hamta.CommandLogger
+api-version: 1.20
+commands:
+  commandlogger:
+    description: Enregistre les commandes d'un joueur spécifié.
+    usage: /<command>
+  reloadcommandlogger:
+    description: Recharge la configuration du plugin sans redémarrer le serveur.
+    usage: /<command>
+    permission: commandlogger.reload
+    permission-message: Vous n'avez pas la permission d'exécuter cette commande.

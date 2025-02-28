@@ -1,0 +1,20 @@
+# Liste des joueurs à surveiller
+players-to-track:
+  - test1
+  - test2
+
+# URL du webhook Discord
+webhook-url: "webhookici"
+
+# Commandes à surveiller et les ID Discord à mentionner
+warncommands:
+  command1:
+    command: "/ban"
+    mention-ids:
+      - "108201599041609728"
+      - "285599918909816842"
+  command2:
+    command: "/kick"
+    mention-ids:
+      - "108201599041609728"
+      - "285599918909816842"
