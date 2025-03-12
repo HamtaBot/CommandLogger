@@ -3,6 +3,9 @@ players-to-track:
   - test1
   - test2
 
+# Préfix du serveur
+server-prefix: "[MonServeur]"
+
 # URL du webhook Discord
 webhook-url: "webhookici"
 

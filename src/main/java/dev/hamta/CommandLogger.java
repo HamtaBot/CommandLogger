@@ -29,37 +29,27 @@ public class CommandLogger extends JavaPlugin implements Listener {
 
     private List<String> playersToTrack;
     private String webhookUrl;
+    private String serverPrefix;
     private List<WarnCommand> warnCommands;
 
     @Override
     public void onEnable() {
-        // Chargement de la configuration initiale
         reloadConfigData();
-
-        // Enregistrer les événements
         getServer().getPluginManager().registerEvents(this, this);
     }
 
-    // Recharger la configuration
     public void reloadConfigData() {
         FileConfiguration config = getConfig();
         playersToTrack = new ArrayList<>(config.getStringList("players-to-track"));
         webhookUrl = config.getString("webhook-url");
+        serverPrefix = config.getString("server-prefix", "[Serveur]");
 
         if (webhookUrl == null || webhookUrl.isEmpty()) {
             getLogger().warning("Aucune URL de webhook n'est définie dans la configuration !");
         }
 
-        // Charger les commandes à surveiller
         warnCommands = loadWarnCommands(config.getConfigurationSection("warncommands"));
-
-        // Déboguer les données rechargées
-        getLogger().info("Configuration rechargée.");
-        getLogger().info("Liste des joueurs à suivre : " + playersToTrack);
-        // Affichage détaillé des commandes à surveiller et de leurs mentions
-        for (WarnCommand warnCommand : warnCommands) {
-            getLogger().info("Commande surveillée : " + warnCommand);
-        }
+        getLogger().info("Configuration rechargée. Préfixe du serveur : " + serverPrefix);
     }
 
     @Override
@@ -80,15 +70,10 @@ public class CommandLogger extends JavaPlugin implements Listener {
         String playerName = event.getPlayer().getName();
         String command = event.getMessage();
 
-        // Si le joueur est dans la liste des joueurs à suivre
         if (playersToTrack.contains(playerName)) {
-            // Envoi de toutes les commandes exécutées par le joueur
             sendToDiscord(playerName, "a exécuté la commande: `" + command + "`", null);
-
-            // Vérifie si la commande fait partie des commandes à surveiller
             for (WarnCommand warnCommand : warnCommands) {
                 if (command.startsWith(warnCommand.getCommand())) {
-                    // Envoi de la commande avec mention si c'est une commande à surveiller
                     getLogger().info("Commande de " + playerName + ": " + command);
                     sendToDiscord(playerName, "a exécuté la commande: `" + command + "`", warnCommand.getMentionIds());
                     break;
@@ -99,10 +84,9 @@ public class CommandLogger extends JavaPlugin implements Listener {
 
     private void sendToDiscord(String playerName, String message, List<String> mentionIds) {
         if (webhookUrl == null || webhookUrl.isEmpty()) {
-            return; // Ne rien envoyer si le webhook n'est pas configuré
+            return;
         }
 
-        // Exécution asynchrone de l'envoi de la requête HTTP
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -113,35 +97,31 @@ public class CommandLogger extends JavaPlugin implements Listener {
                     connection.setRequestProperty("Content-Type", "application/json");
                     connection.setDoOutput(true);
 
-                    // Formatage de la date et heure en français
                     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.FRANCE);
                     sdf.setTimeZone(TimeZone.getTimeZone("Europe/Paris"));
                     String timestamp = sdf.format(new Date());
 
-                    // Ajouter les mentions Discord si présentes
                     String mentions = "";
                     if (mentionIds != null && !mentionIds.isEmpty()) {
                         for (String mentionId : mentionIds) {
-                            mentions += "<@" + mentionId + "> ";  // La mention se fait en utilisant <@ID>
+                            mentions += "<@" + mentionId + "> ";
                         }
                     }
 
-                    // Construction du message avec la date et l'heure et la mention des utilisateurs Discord
-                    String jsonPayload = "{\"content\": \"[" + timestamp + "] **" + playerName + "** " + mentions + message + "\"}";
+                    String jsonPayload = "{\"content\": \"" + serverPrefix + " [" + timestamp + "] **" + playerName + "** " + mentions + message + "\"}";
 
-                    // Envoi du message via webhook
                     try (OutputStream os = connection.getOutputStream()) {
                         byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
                         os.write(input, 0, input.length);
                     }
 
-                    connection.getResponseCode(); // Déclencher la requête
+                    connection.getResponseCode();
                     connection.disconnect();
                 } catch (IOException e) {
                     getLogger().log(Level.WARNING, "Erreur lors de l'envoi au webhook Discord", e);
                 }
             }
-        }.runTaskAsynchronously(this); // Exécution dans un thread distinct
+        }.runTaskAsynchronously(this);
     }
 
     private List<WarnCommand> loadWarnCommands(ConfigurationSection configSection) {
@@ -156,7 +136,6 @@ public class CommandLogger extends JavaPlugin implements Listener {
         return warnCommands;
     }
 
-    // Classe interne pour représenter les commandes de la section "warncommands"
     public static class WarnCommand {
         private final String command;
         private final List<String> mentionIds;
@@ -172,11 +151,6 @@ public class CommandLogger extends JavaPlugin implements Listener {
 
         public List<String> getMentionIds() {
             return mentionIds;
-        }
-
-        @Override
-        public String toString() {
-            return "Command: " + command + ", Mentions: " + (mentionIds.isEmpty() ? "Aucune" : mentionIds.toString());
         }
     }
 }
